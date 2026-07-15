@@ -1,0 +1,18 @@
+{
+  "projects": {
+    "default": "aura-stadium-ops"
+  },
+  "targets": {
+    "aura-stadium-ops": {
+      "hosting": {
+        "dashboard": [
+          "aura-dashboard"
+        ],
+        "fan-app": [
+          "aura-fan"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

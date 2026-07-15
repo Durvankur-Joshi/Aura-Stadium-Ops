@@ -1,0 +1,16 @@
+{
+  "name": "aura-seeder",
+  "version": "1.0.0",
+  "description": "Mock Data Seeder for Aura",
+  "scripts": {
+    "seed": "ts-node seed.ts"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.0.0"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3",
+    "@types/node": "^20.11.0"
+  }
+}

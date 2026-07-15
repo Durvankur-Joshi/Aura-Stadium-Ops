@@ -1,0 +1,23 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // DEVELOPMENT MODE RULES
+    // Since we skipped Sprint 2 (Authentication), we are temporarily allowing 
+    // public reads to all collections so you can build and test the Dashboard UI.
+    
+    match /zones/{zoneId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    match /users/{userId} {
+      allow read: if true; // Temporarily open for Dashboard UI testing
+      allow write: if true; // Temporarily open
+    }
+
+    match /campaigns/{campaignId} {
+      allow read: if true; // Temporarily open for Dashboard UI testing
+      allow write: if true; // Temporarily open
+    }
+  }
+}
