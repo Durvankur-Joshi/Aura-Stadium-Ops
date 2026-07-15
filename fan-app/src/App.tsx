@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MapPin, ShieldCheck, Ticket } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './config/firebase';
 
-// Extend the window object for TypeScript to recognize the native Speech API
 declare global {
   interface Window {
     SpeechRecognition: any;
@@ -19,6 +20,7 @@ interface Message {
 
 function App() {
   const [isRecording, setIsRecording] = useState(false);
+  const [isAiThinking, setIsAiThinking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -33,12 +35,10 @@ function App() {
   const recognitionRef = useRef<any>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to the newest message
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isRecording, transcript, rewardCode]);
+  }, [messages, isRecording, transcript, rewardCode, isAiThinking]);
 
-  // Initialize the Web Speech API on component mount
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -58,43 +58,62 @@ function App() {
         console.error("Speech recognition error:", event.error);
         setIsRecording(false);
       };
-    } else {
-      console.warn("Speech recognition is not supported in this browser.");
     }
   }, []);
 
   const toggleRecording = () => {
     if (isRecording) {
-      // STOP RECORDING
+      // STOP RECORDING & SEND TO GEMINI
       recognitionRef.current?.stop();
       setIsRecording(false);
       
-      // If the user actually said something, add it to the chat
-      if (transcript.trim()) {
+      const finalText = transcript.trim();
+      if (finalText) {
+        // 1. Add user message to UI
         const newUserMsg: Message = {
           id: Date.now().toString(),
-          text: transcript,
+          text: finalText,
           sender: 'user',
           timestamp: 'Just now'
         };
         setMessages(prev => [...prev, newUserMsg]);
         setTranscript('');
+        setIsAiThinking(true);
         
-        // MOCK: Simulate the AI processing the text and deciding to grant a reward.
-        // In Sprint 7, we will send the text to our Cloud Function and wait for Gemini's real JSON response.
-        setTimeout(() => {
+        // 2. Call the Real Cloud Function!
+        const negotiateFn = httpsCallable(functions, 'negotiate');
+        
+        negotiateFn({
+          transcript: finalText,
+          // We use a mock user ID and zone ID for the hackathon demo
+          userId: 'user_42_mock',
+          zoneId: 'south_gate'
+        }).then((result: any) => {
+          const data = result.data;
+          
+          setIsAiThinking(false);
           setMessages(prev => [...prev, {
-            id: (Date.now() + 1).toString(),
-            text: "I completely understand. I've just generated a QR code for a free drink at the East Concourse bar while you wait. The traffic should clear up in 20 minutes!",
+            id: Date.now().toString(),
+            text: data.speech,
             sender: 'ai',
             timestamp: 'Just now'
           }]);
           
-          // Reveal the QR Code dynamically
-          setTimeout(() => {
-            setRewardCode(`AURA-FREE-DRINK-${Math.floor(Math.random() * 10000)}`);
-          }, 1500);
-        }, 1000);
+          if (data.reward_code) {
+            setTimeout(() => {
+              setRewardCode(data.reward_code);
+            }, 1000);
+          }
+        }).catch((error) => {
+          console.error("Backend Error:", error);
+          setIsAiThinking(false);
+          setMessages(prev => [...prev, {
+            id: Date.now().toString(),
+            text: "I'm having trouble connecting right now, but please stay safe.",
+            sender: 'ai',
+            timestamp: 'Just now'
+          }]);
+        });
       }
     } else {
       // START RECORDING
@@ -123,7 +142,6 @@ function App() {
 
         <main className="flex-1 overflow-y-auto hide-scrollbar p-6 flex flex-col space-y-5 pb-36">
           
-          {/* Render the chat history */}
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300 ${msg.sender === 'user' ? 'items-end self-end' : 'items-start'}`}>
               <div className={`p-4 shadow-lg backdrop-blur-md ${
@@ -139,7 +157,7 @@ function App() {
             </div>
           ))}
 
-          {/* Render the live transcript as the user speaks */}
+          {/* User Transcript Preview */}
           {isRecording && (
             <div className="flex flex-col items-end self-end max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="bg-aura-primary text-white rounded-2xl rounded-tr-sm p-4 shadow-lg shadow-aura-primary/20">
@@ -157,7 +175,21 @@ function App() {
             </div>
           )}
 
-          {/* Render the QR Reward Screen when an offer is accepted */}
+          {/* AI Thinking State */}
+          {isAiThinking && (
+            <div className="flex flex-col items-start max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300">
+              <div className="bg-aura-card border border-gray-700/60 rounded-2xl rounded-tl-sm p-4 shadow-lg backdrop-blur-md">
+                <span className="flex items-center text-aura-primary">
+                  <span className="h-2 w-2 bg-aura-primary rounded-full mr-1 animate-ping"></span>
+                  <span className="h-2 w-2 bg-aura-primary rounded-full mr-1 animate-ping delay-100"></span>
+                  <span className="h-2 w-2 bg-aura-primary rounded-full animate-ping delay-200"></span>
+                </span>
+              </div>
+              <span className="text-[10px] font-medium text-gray-500 mt-2 mx-2">Aura AI is thinking...</span>
+            </div>
+          )}
+
+          {/* QR Reward Screen */}
           {rewardCode && (
             <div className="mt-8 flex flex-col items-center bg-white rounded-2xl p-6 shadow-2xl shadow-aura-success/20 animate-in zoom-in fade-in duration-500">
               <div className="bg-aura-success/10 text-aura-success p-2 rounded-full mb-4">
@@ -177,19 +209,22 @@ function App() {
           <div ref={chatEndRef} />
         </main>
 
-        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-aura-dark via-aura-dark to-transparent pt-12 pb-10 flex flex-col items-center">
+        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-aura-dark via-aura-dark to-transparent pt-12 pb-10 flex flex-col items-center pointer-events-none">
           <button 
             onClick={toggleRecording}
-            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl z-20 ${
+            disabled={isAiThinking}
+            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl pointer-events-auto z-20 ${
               isRecording 
                 ? 'bg-aura-danger shadow-aura-danger/40 scale-110' 
+                : isAiThinking
+                ? 'bg-gray-700 shadow-gray-700/40 opacity-50 cursor-not-allowed'
                 : 'bg-aura-primary shadow-aura-primary/40 hover:scale-105'
             }`}
           >
             <Mic size={32} className={`text-white ${isRecording ? 'animate-pulse' : ''}`} />
           </button>
           <p className="text-[10px] text-gray-400 mt-6 font-bold tracking-widest uppercase">
-            {isRecording ? 'Tap to Send' : 'Tap to Speak'}
+            {isRecording ? 'Tap to Send' : isAiThinking ? 'Analyzing' : 'Tap to Speak'}
           </p>
         </div>
         
