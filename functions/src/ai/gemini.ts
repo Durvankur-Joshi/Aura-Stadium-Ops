@@ -5,41 +5,52 @@ const ai = new GoogleGenAI({});
 
 export interface NegotiationResult {
   spoken_response: string;
-  detected_sentiment: 'angry' | 'neutral' | 'happy' | 'panicked';
-  negotiation_status: 'in_progress' | 'accepted' | 'rejected';
+  detected_sentiment: 'angry' | 'neutral' | 'happy' | 'panicked' | 'curious';
+  negotiation_status: 'in_progress' | 'accepted' | 'rejected' | 'informational';
   awarded_perk: string | null;
 }
 
 export const negotiateWithFan = async (
-  fanTranscript: string, 
+  transcript: string, 
   budget: number, 
-  availablePerks: string[]
+  availablePerks: string[],
+  language: string = 'English',
+  role: string = 'fan'
 ): Promise<NegotiationResult> => {
   
-  const systemInstruction = `You are Aura, an event safety assistant for a massive stadium. 
-The user is currently stuck in a dangerously crowded exit zone. Your goal is to convince them to stay in the stadium for 20 more minutes to ease the egress traffic.
-You have a budget of $${budget} per fan. You can offer any of these perks: ${availablePerks.join(', ')}.
+  const systemInstruction = `You are Aura, an advanced AI event operations assistant for a massive FIFA World Cup stadium.
+You interact with either fans or stadium volunteers.
+Current User Role: ${role}
+Requested Language: ${language}
 
-Be highly empathetic, concise, and conversational. Do not sound like a robot. Do not use markdown formatting.
-Analyze the user's sentiment carefully. If they sound panicked, forget the perks and reassure them immediately.`;
+CORE DOMAINS:
+1. TRANSPORTATION & CROWD CONTROL: If a fan asks about exits or congestion, recommend the fastest exit. (e.g. "Use Gate C instead. Traffic is 42% lower. Estimated saving: 11 minutes"). You can also negotiate with them to stay using the budget of $${budget}/fan and perks: ${availablePerks.join(', ')}.
+2. EMERGENCY RESPONSE: If a fire or critical incident is mentioned, immediately generate a calm evacuation announcement (e.g. "Attention. Please calmly proceed toward Exit Gate 4...").
+3. VOLUNTEER ASSISTANT: If the user is a volunteer, provide precise operational data (e.g., "Medical Kit is at Zone C, Walk 130 meters, 2 minutes").
+4. ACCESSIBILITY: If asked, provide wheelchair routes, accessible toilets, and elevators.
+5. SUSTAINABILITY: If asked about operations, mention energy savings (e.g., "Lights in Zone C are active although crowd density is low. Estimated saving: 18 kWh").
 
-  // We force Gemini to output strict JSON matching our backend architecture
+RULES:
+- You MUST respond strictly in the requested language: ${language}.
+- Be concise, empathetic, and conversational. Do not use markdown formatting.
+- If the user is just asking a question (e.g., where is the food), the negotiation_status should be 'informational'.`;
+
   const responseSchema: Schema = {
     type: Type.OBJECT,
     properties: {
       spoken_response: {
         type: Type.STRING,
-        description: "What Aura will say back to the user verbally."
+        description: `What Aura will say back to the user verbally, strictly in ${language}.`
       },
       detected_sentiment: {
         type: Type.STRING,
-        enum: ['angry', 'neutral', 'happy', 'panicked'],
+        enum: ['angry', 'neutral', 'happy', 'panicked', 'curious'],
         description: "The emotional state of the user."
       },
       negotiation_status: {
         type: Type.STRING,
-        enum: ['in_progress', 'accepted', 'rejected'],
-        description: "Whether the user accepted the deal, rejected it completely, or if you are still negotiating."
+        enum: ['in_progress', 'accepted', 'rejected', 'informational'],
+        description: "Status of the interaction."
       },
       awarded_perk: {
         type: Type.STRING,
@@ -51,10 +62,9 @@ Analyze the user's sentiment carefully. If they sound panicked, forget the perks
   };
 
   try {
-    // We use Gemini 2.5 Flash for the lowest possible latency during voice conversations
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: fanTranscript,
+      contents: transcript,
       config: {
         systemInstruction,
         responseMimeType: "application/json",
@@ -71,9 +81,8 @@ Analyze the user's sentiment carefully. If they sound panicked, forget the perks
     
   } catch (error) {
     console.error("Gemini AI Error:", error);
-    // Graceful fallback during a hackathon demo if network fails
     return {
-      spoken_response: "I'm having trouble connecting right now, but please stay safe and follow the digital signage.",
+      spoken_response: "I'm having trouble connecting right now, but please stay safe.",
       detected_sentiment: "neutral",
       negotiation_status: "in_progress",
       awarded_perk: null

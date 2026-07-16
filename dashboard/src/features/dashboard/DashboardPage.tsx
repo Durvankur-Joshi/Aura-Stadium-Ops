@@ -5,6 +5,7 @@ import { useCampaigns } from '../../hooks/useCampaigns';
 import { StatsGrid } from './StatsGrid';
 import { StadiumMap } from './StadiumMap';
 import { ActiveCampaigns } from './ActiveCampaigns';
+import { AIInsights } from './AIInsights';
 
 export const DashboardPage: React.FC = () => {
   const { zones, loading: zonesLoading } = useZones();
@@ -26,20 +27,25 @@ export const DashboardPage: React.FC = () => {
         <p className="text-gray-400 mt-1">Real-time crowd intelligence and active GenAI negotiations.</p>
       </header>
       
-      {/* 1. Live Statistics Cards */}
+      {/* 1. Live Statistics Cards (Now 6 KPIs) */}
       <StatsGrid zones={zones} users={users} campaigns={campaigns} />
 
-      {/* 2. Main Grid: Map & Campaigns Panel (Fixed alignment/height conflicts) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* 2. Main Grid: Map, AI Insights, & Campaigns Panel */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
         {/* Left Col: Stadium Map */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <StadiumMap zones={zones} />
         </div>
 
-        {/* Right Col: Active Campaigns */}
-        <div className="lg:col-span-1 h-[500px]">
-          <ActiveCampaigns campaigns={campaigns} />
+        {/* Right Col: AI Insights + Active Campaigns */}
+        <div className="xl:col-span-1 flex flex-col space-y-6 h-[500px]">
+          <div className="shrink-0">
+            <AIInsights />
+          </div>
+          <div className="flex-1 min-h-0">
+            <ActiveCampaigns campaigns={campaigns} />
+          </div>
         </div>
 
       </div>

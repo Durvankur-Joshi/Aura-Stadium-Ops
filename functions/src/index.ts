@@ -7,7 +7,7 @@ const db = admin.firestore();
 
 // 1. The Core AI Negotiation Endpoint (Called by the Fan App)
 export const negotiate = functions.https.onCall(async (data, context) => {
-  const { transcript, userId, zoneId } = data;
+  const { transcript, userId, zoneId, language = 'English', role = 'fan' } = data;
   if (!transcript || !userId) {
     throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
   }
@@ -27,8 +27,8 @@ export const negotiate = functions.https.onCall(async (data, context) => {
     availablePerks = campaignData.available_perks;
   }
 
-  // Run the Core Intelligence Engine
-  const aiResult = await negotiateWithFan(transcript, budget, availablePerks);
+  // Run the Core Intelligence Engine (Now with Language & Role support)
+  const aiResult = await negotiateWithFan(transcript, budget, availablePerks, language, role);
 
   // Update real-time state based on Gemini's JSON decision
   const userRef = db.collection('users').doc(userId);

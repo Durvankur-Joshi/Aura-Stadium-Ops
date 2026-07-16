@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MapPin, ShieldCheck, Ticket } from 'lucide-react';
+import { Mic, MapPin, ShieldCheck, Ticket, Pizza, Flame, Navigation, Activity } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from './config/firebase';
@@ -22,10 +22,11 @@ function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [transcript, setTranscript] = useState('');
+  const [language, setLanguage] = useState('English');
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'msg_1',
-      text: "Hi there! I noticed the South Gate is currently experiencing heavy egress traffic. I can help you find a faster exit or offer you an exclusive perk to wait it out. How can I help?",
+      text: "Hi there! I'm Aura, your AI event companion. I can help you find your seat, locate accessible routes, or guide you during an emergency. How can I assist you?",
       sender: 'ai',
       timestamp: 'Just now'
     }
@@ -61,67 +62,83 @@ function App() {
     }
   }, []);
 
+  const sendToGemini = (text: string) => {
+    const newUserMsg: Message = {
+      id: Date.now().toString(),
+      text: text,
+      sender: 'user',
+      timestamp: 'Just now'
+    };
+    setMessages(prev => [...prev, newUserMsg]);
+    setIsAiThinking(true);
+    
+    const negotiateFn = httpsCallable(functions, 'negotiate');
+    
+    negotiateFn({
+      transcript: text,
+      userId: 'user_42_mock',
+      zoneId: 'south_gate',
+      language: language
+    }).then((result: any) => {
+      const data = result.data;
+      
+      setIsAiThinking(false);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        text: data.speech,
+        sender: 'ai',
+        timestamp: 'Just now'
+      }]);
+      
+      if (data.reward_code) {
+        setTimeout(() => {
+          setRewardCode(data.reward_code);
+        }, 1000);
+      }
+    }).catch((error) => {
+      console.error("Backend Error:", error);
+      setIsAiThinking(false);
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        text: "I'm having trouble connecting right now, but please stay safe.",
+        sender: 'ai',
+        timestamp: 'Just now'
+      }]);
+    });
+  };
+
+  const handleQuickAction = (actionText: string) => {
+    if (isRecording) {
+      recognitionRef.current?.stop();
+      setIsRecording(false);
+    }
+    setTranscript('');
+    sendToGemini(actionText);
+  };
+
   const toggleRecording = () => {
     if (isRecording) {
-      // STOP RECORDING & SEND TO GEMINI
       recognitionRef.current?.stop();
       setIsRecording(false);
       
       const finalText = transcript.trim();
       if (finalText) {
-        // 1. Add user message to UI
-        const newUserMsg: Message = {
-          id: Date.now().toString(),
-          text: finalText,
-          sender: 'user',
-          timestamp: 'Just now'
-        };
-        setMessages(prev => [...prev, newUserMsg]);
         setTranscript('');
-        setIsAiThinking(true);
-        
-        // 2. Call the Real Cloud Function!
-        const negotiateFn = httpsCallable(functions, 'negotiate');
-        
-        negotiateFn({
-          transcript: finalText,
-          // We use a mock user ID and zone ID for the hackathon demo
-          userId: 'user_42_mock',
-          zoneId: 'south_gate'
-        }).then((result: any) => {
-          const data = result.data;
-          
-          setIsAiThinking(false);
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            text: data.speech,
-            sender: 'ai',
-            timestamp: 'Just now'
-          }]);
-          
-          if (data.reward_code) {
-            setTimeout(() => {
-              setRewardCode(data.reward_code);
-            }, 1000);
-          }
-        }).catch((error) => {
-          console.error("Backend Error:", error);
-          setIsAiThinking(false);
-          setMessages(prev => [...prev, {
-            id: Date.now().toString(),
-            text: "I'm having trouble connecting right now, but please stay safe.",
-            sender: 'ai',
-            timestamp: 'Just now'
-          }]);
-        });
+        sendToGemini(finalText);
       }
     } else {
-      // START RECORDING
       setTranscript('');
       recognitionRef.current?.start();
       setIsRecording(true);
     }
   };
+
+  const quickActions = [
+    { label: 'Food nearby', icon: <Pizza size={14} /> },
+    { label: 'Wheelchair Route', icon: <Activity size={14} /> }, // Using Activity since Accessibility icon might require a different import
+    { label: 'Find my seat', icon: <Navigation size={14} /> },
+    { label: 'Report Fire', icon: <Flame size={14} className="text-aura-danger" /> }
+  ];
 
   return (
     <div className="min-h-screen bg-aura-dark text-white flex justify-center">
@@ -134,13 +151,25 @@ function App() {
               <ShieldCheck size={12} className="mr-1" /> Secure Connection
             </div>
           </div>
-          <div className="bg-gray-800/80 rounded-full px-3 py-1.5 flex items-center border border-gray-700 backdrop-blur-md">
-            <MapPin size={12} className="text-aura-primary mr-1.5" />
-            <span className="text-xs font-semibold">South Gate</span>
+          <div className="flex items-center space-x-3">
+            <select 
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="bg-gray-800 text-xs font-semibold text-white px-2 py-1.5 rounded-md border border-gray-700 outline-none cursor-pointer"
+            >
+              <option value="English">EN</option>
+              <option value="Hindi">HI</option>
+              <option value="Spanish">ES</option>
+              <option value="French">FR</option>
+            </select>
+            <div className="bg-gray-800/80 rounded-full px-3 py-1.5 flex items-center border border-gray-700 backdrop-blur-md">
+              <MapPin size={12} className="text-aura-primary mr-1.5" />
+              <span className="text-xs font-semibold">South Gate</span>
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto hide-scrollbar p-6 flex flex-col space-y-5 pb-36">
+        <main className="flex-1 overflow-y-auto hide-scrollbar p-6 flex flex-col space-y-5 pb-44">
           
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300 ${msg.sender === 'user' ? 'items-end self-end' : 'items-start'}`}>
@@ -157,7 +186,6 @@ function App() {
             </div>
           ))}
 
-          {/* User Transcript Preview */}
           {isRecording && (
             <div className="flex flex-col items-end self-end max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="bg-aura-primary text-white rounded-2xl rounded-tr-sm p-4 shadow-lg shadow-aura-primary/20">
@@ -175,7 +203,6 @@ function App() {
             </div>
           )}
 
-          {/* AI Thinking State */}
           {isAiThinking && (
             <div className="flex flex-col items-start max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="bg-aura-card border border-gray-700/60 rounded-2xl rounded-tl-sm p-4 shadow-lg backdrop-blur-md">
@@ -189,7 +216,6 @@ function App() {
             </div>
           )}
 
-          {/* QR Reward Screen */}
           {rewardCode && (
             <div className="mt-8 flex flex-col items-center bg-white rounded-2xl p-6 shadow-2xl shadow-aura-success/20 animate-in zoom-in fade-in duration-500">
               <div className="bg-aura-success/10 text-aura-success p-2 rounded-full mb-4">
@@ -209,23 +235,41 @@ function App() {
           <div ref={chatEndRef} />
         </main>
 
-        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-aura-dark via-aura-dark to-transparent pt-12 pb-10 flex flex-col items-center pointer-events-none">
-          <button 
-            onClick={toggleRecording}
-            disabled={isAiThinking}
-            className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl pointer-events-auto z-20 ${
-              isRecording 
-                ? 'bg-aura-danger shadow-aura-danger/40 scale-110' 
-                : isAiThinking
-                ? 'bg-gray-700 shadow-gray-700/40 opacity-50 cursor-not-allowed'
-                : 'bg-aura-primary shadow-aura-primary/40 hover:scale-105'
-            }`}
-          >
-            <Mic size={32} className={`text-white ${isRecording ? 'animate-pulse' : ''}`} />
-          </button>
-          <p className="text-[10px] text-gray-400 mt-6 font-bold tracking-widest uppercase">
-            {isRecording ? 'Tap to Send' : isAiThinking ? 'Analyzing' : 'Tap to Speak'}
-          </p>
+        <div className="absolute bottom-0 w-full bg-gradient-to-t from-aura-dark via-aura-dark to-transparent pt-12 flex flex-col items-center pointer-events-none z-20">
+          
+          {/* Quick Actions Scrollable Grid */}
+          <div className="flex overflow-x-auto hide-scrollbar space-x-2 px-6 mb-6 w-full pointer-events-auto">
+            {quickActions.map(action => (
+              <button 
+                key={action.label}
+                onClick={() => handleQuickAction(action.label)}
+                disabled={isAiThinking}
+                className="whitespace-nowrap flex items-center bg-gray-800/90 hover:bg-gray-700 border border-gray-700 rounded-full px-4 py-2 text-xs font-medium text-gray-200 transition-colors shadow-lg"
+              >
+                <span className="mr-2 opacity-80">{action.icon}</span>
+                {action.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="pb-8 flex flex-col items-center w-full pointer-events-auto">
+            <button 
+              onClick={toggleRecording}
+              disabled={isAiThinking}
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
+                isRecording 
+                  ? 'bg-aura-danger shadow-aura-danger/40 scale-110' 
+                  : isAiThinking
+                  ? 'bg-gray-700 shadow-gray-700/40 opacity-50 cursor-not-allowed'
+                  : 'bg-aura-primary shadow-aura-primary/40 hover:scale-105'
+              }`}
+            >
+              <Mic size={32} className={`text-white ${isRecording ? 'animate-pulse' : ''}`} />
+            </button>
+            <p className="text-[10px] text-gray-400 mt-4 font-bold tracking-widest uppercase">
+              {isRecording ? 'Tap to Send' : isAiThinking ? 'Analyzing' : 'Tap to Speak'}
+            </p>
+          </div>
         </div>
         
       </div>
