@@ -67,3 +67,10 @@ Thumbs.db
 # Local Documents
 # ==========================
 digest.txt
+
+# TypeScript / Build
+functions/lib/
+lib/
+
+# Vite temporary files
+*.timestamp-*.mjs
