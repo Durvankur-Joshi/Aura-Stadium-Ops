@@ -71,17 +71,23 @@ function App() {
     };
     setMessages(prev => [...prev, newUserMsg]);
     setIsAiThinking(true);
+    // Standard fetch call to the new Express backend
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
     
-    const negotiateFn = httpsCallable(functions, 'negotiate');
-    
-    negotiateFn({
-      transcript: text,
-      userId: 'user_42_mock',
-      zoneId: 'south_gate',
-      language: language
-    }).then((result: any) => {
-      const data = result.data;
-      
+    fetch(`${backendUrl}/api/negotiate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        transcript: text,
+        userId: 'user_42_mock',
+        zoneId: 'south_gate',
+        language: language
+      })
+    })
+    .then(res => res.json())
+    .then((data: any) => {
       setIsAiThinking(false);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
@@ -95,7 +101,8 @@ function App() {
           setRewardCode(data.reward_code);
         }, 1000);
       }
-    }).catch((error) => {
+    })
+    .catch((error) => {
       console.error("Backend Error:", error);
       setIsAiThinking(false);
       setMessages(prev => [...prev, {
