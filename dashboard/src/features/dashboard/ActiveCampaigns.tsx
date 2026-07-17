@@ -8,17 +8,24 @@ interface ActiveCampaignsProps {
 }
 
 export const ActiveCampaigns: React.FC<ActiveCampaignsProps> = ({ campaigns }) => {
-  // Mock function to instantly deploy a campaign to Firestore.
-  // In Sprint 7, this will trigger the Gemini Backend Cloud Function.
+  // Trigger the Express Backend API to deploy the campaign securely
   const handleDeployAura = async () => {
-    const newId = `camp_${Date.now()}`;
-    await FirebaseService.deployCampaign(newId, {
-      id: newId,
-      target_zone: 'south_gate',
-      budget: 15,
-      available_perks: ['Free Drink', 'VIP Access'],
-      active: true
-    });
+    try {
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://aura-stadium-ops.onrender.com';
+      await fetch(`${backendUrl}/api/deployCampaign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          zoneId: 'south_gate',
+          budget: 15,
+          perks: ['Free Drink', 'VIP Access']
+        })
+      });
+    } catch (error) {
+      console.error("Failed to deploy campaign:", error);
+    }
   };
 
   return (

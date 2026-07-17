@@ -72,7 +72,7 @@ function App() {
     setMessages(prev => [...prev, newUserMsg]);
     setIsAiThinking(true);
     // Standard fetch call to the new Express backend
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://aura-stadium-ops.onrender.com';
     
     fetch(`${backendUrl}/api/negotiate`, {
       method: 'POST',
