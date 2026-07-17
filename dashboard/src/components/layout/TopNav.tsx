@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Search, UserCircle } from 'lucide-react';
+import { Bell, Search, UserCircle, Smartphone } from 'lucide-react';
 
 export const TopNav: React.FC = () => {
   return (
@@ -14,6 +14,15 @@ export const TopNav: React.FC = () => {
       </div>
       
       <div className="flex items-center space-x-4">
+        <a 
+          href={import.meta.env.VITE_FAN_APP_URL || 'http://localhost:3001'}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center space-x-2 bg-gradient-to-r from-aura-primary to-aura-accent hover:opacity-90 text-white px-4 py-1.5 rounded-lg shadow-lg shadow-aura-primary/20 transition-all font-medium text-sm"
+        >
+          <Smartphone size={16} />
+          <span>Launch Fan App</span>
+        </a>
         <button className="relative p-2 text-gray-400 hover:text-white transition-colors">
           <Bell size={20} />
           {/* Notification ping indicator */}
