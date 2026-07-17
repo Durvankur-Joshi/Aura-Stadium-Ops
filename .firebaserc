@@ -9,7 +9,8 @@
           "aura-dashboard"
         ],
         "fan-app": [
-          "aura-fan"
+          "aura-fan",
+          "aura-fan-app"
         ]
       }
     }

@@ -2,14 +2,14 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// Initialize Firebase using environment variables (or placeholders until you paste them)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
+  apiKey: "AIzaSyBM5_Eoth1BoEHcghthYMKQ0t-msZ57Jwo",
+  authDomain: "aura-stadium-ops.firebaseapp.com",
   projectId: "aura-stadium-ops",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  storageBucket: "aura-stadium-ops.firebasestorage.app",
+  messagingSenderId: "606849951812",
+  appId: "1:606849951812:web:71892041091b39b623b411",
+  measurementId: "G-E4N7737TQP"
 };
 
 const app = initializeApp(firebaseConfig);
