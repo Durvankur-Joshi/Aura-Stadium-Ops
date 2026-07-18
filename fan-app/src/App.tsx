@@ -118,7 +118,7 @@ function App() {
       
       if (data.reward_code) {
         setTimeout(() => {
-          setRewardCode(data.reward_code);
+          setRewardCode(data.reward_code || null);
         }, 1000);
       }
     })
