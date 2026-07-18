@@ -34,7 +34,7 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
 
     // Update real-time state based on Gemini's JSON decision
     const userRef = db.collection('users').doc(userId);
-    let userUpdatePayload: any = { sentiment: aiResult.detected_sentiment };
+    let userUpdatePayload: Record<string, string> = { sentiment: aiResult.detected_sentiment };
 
     if (aiResult.negotiation_status === 'accepted') {
       userUpdatePayload.status = 'rerouted';

@@ -41,28 +41,48 @@ function App() {
   }, [messages, isRecording, transcript, rewardCode, isAiThinking]);
 
   useEffect(() => {
+    interface SpeechEvent extends Event {
+      results: { [index: number]: { [index: number]: { transcript: string } } };
+    }
+    
+    interface BackendResponse {
+      speech: string;
+      reward_code?: string;
+      status: string;
+    }
+    
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+      recognitionRef.current.continuous = false;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = language === 'Spanish' ? 'es-ES' : 
+                                    language === 'Hindi' ? 'hi-IN' : 
+                                    language === 'French' ? 'fr-FR' : 'en-US';
 
-      recognitionRef.current.onresult = (event: any) => {
-        let currentTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          currentTranscript += event.results[i][0].transcript;
-        }
-        setTranscript(currentTranscript);
+      recognitionRef.current.onresult = (event: SpeechEvent) => {
+        const transcript = event.results[0][0].transcript;
+        sendToGemini(transcript);
       };
 
-      recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
+      recognitionRef.current.onerror = (event: Event) => {
+        console.error("Speech recognition error", event);
+        setIsRecording(false);
+      };
+
+      recognitionRef.current.onend = () => {
         setIsRecording(false);
       };
     }
-  }, []);
+  }, [language]);
 
   const sendToGemini = (text: string) => {
+    interface BackendResponse {
+      speech: string;
+      reward_code?: string;
+      status: string;
+    }
     const newUserMsg: Message = {
       id: Date.now().toString(),
       text: text,
@@ -87,7 +107,7 @@ function App() {
       })
     })
     .then(res => res.json())
-    .then((data: any) => {
+    .then((data: BackendResponse) => {
       setIsAiThinking(false);
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
@@ -140,12 +160,12 @@ function App() {
     }
   };
 
-  const quickActions = [
+  const quickActions = React.useMemo(() => [
     { label: 'Food nearby', icon: <Pizza size={14} /> },
-    { label: 'Wheelchair Route', icon: <Activity size={14} /> }, // Using Activity since Accessibility icon might require a different import
+    { label: 'Wheelchair Route', icon: <Activity size={14} /> },
     { label: 'Find my seat', icon: <Navigation size={14} /> },
     { label: 'Report Fire', icon: <Flame size={14} className="text-aura-danger" /> }
-  ];
+  ], []);
 
   return (
     <div className="min-h-screen bg-aura-dark text-white flex justify-center">
@@ -155,14 +175,15 @@ function App() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Aura Companion</h1>
             <div className="flex items-center text-[11px] font-medium text-aura-success mt-1">
-              <ShieldCheck size={12} className="mr-1" /> Secure Connection
+              <ShieldCheck size={12} className="mr-1" aria-hidden="true" /> Secure Connection
             </div>
           </div>
           <div className="flex items-center space-x-3">
             <select 
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="bg-gray-800 text-xs font-semibold text-white px-2 py-1.5 rounded-md border border-gray-700 outline-none cursor-pointer"
+              aria-label="Select Language"
+              className="bg-gray-800 text-xs font-semibold text-white px-2 py-1.5 rounded-md border border-gray-700 outline-none cursor-pointer focus:ring-2 focus:ring-aura-primary focus:border-transparent transition-all"
             >
               <option value="English">EN</option>
               <option value="Hindi">HI</option>
@@ -170,13 +191,17 @@ function App() {
               <option value="French">FR</option>
             </select>
             <div className="bg-gray-800/80 rounded-full px-3 py-1.5 flex items-center border border-gray-700 backdrop-blur-md">
-              <MapPin size={12} className="text-aura-primary mr-1.5" />
+              <MapPin size={12} className="text-aura-primary mr-1.5" aria-hidden="true" />
               <span className="text-xs font-semibold">South Gate</span>
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto hide-scrollbar p-6 flex flex-col space-y-5 pb-44">
+        <main 
+          className="flex-1 overflow-y-auto hide-scrollbar p-6 flex flex-col space-y-5 pb-44" 
+          aria-live="polite"
+          aria-atomic="false"
+        >
           
           {messages.map((msg) => (
             <div key={msg.id} className={`flex flex-col max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300 ${msg.sender === 'user' ? 'items-end self-end' : 'items-start'}`}>
@@ -188,7 +213,7 @@ function App() {
                 <p className="text-sm leading-relaxed text-gray-200">{msg.text}</p>
               </div>
               <span className="text-[10px] font-medium text-gray-500 mt-2 mx-2">
-                {msg.sender === 'ai' ? 'Aura AI' : 'You'} • {msg.timestamp}
+                {msg.sender === 'ai' ? 'Aura AI' : 'You'} • <span className="sr-only">Sent at</span> {msg.timestamp}
               </span>
             </div>
           ))}
@@ -196,7 +221,7 @@ function App() {
           {isRecording && (
             <div className="flex flex-col items-end self-end max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300">
               <div className="bg-aura-primary text-white rounded-2xl rounded-tr-sm p-4 shadow-lg shadow-aura-primary/20">
-                <p className="text-sm leading-relaxed font-medium">
+                <p className="text-sm leading-relaxed font-medium" aria-live="assertive">
                   {transcript || (
                     <span className="animate-pulse flex items-center">
                       <span className="h-1.5 w-1.5 bg-white rounded-full mr-1 animate-bounce"></span>
@@ -212,7 +237,7 @@ function App() {
 
           {isAiThinking && (
             <div className="flex flex-col items-start max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300">
-              <div className="bg-aura-card border border-gray-700/60 rounded-2xl rounded-tl-sm p-4 shadow-lg backdrop-blur-md">
+              <div className="bg-aura-card border border-gray-700/60 rounded-2xl rounded-tl-sm p-4 shadow-lg backdrop-blur-md" aria-label="Aura is thinking">
                 <span className="flex items-center text-aura-primary">
                   <span className="h-2 w-2 bg-aura-primary rounded-full mr-1 animate-ping"></span>
                   <span className="h-2 w-2 bg-aura-primary rounded-full mr-1 animate-ping delay-100"></span>
@@ -224,9 +249,9 @@ function App() {
           )}
 
           {rewardCode && (
-            <div className="mt-8 flex flex-col items-center bg-white rounded-2xl p-6 shadow-2xl shadow-aura-success/20 animate-in zoom-in fade-in duration-500">
+            <div className="mt-8 flex flex-col items-center bg-white rounded-2xl p-6 shadow-2xl shadow-aura-success/20 animate-in zoom-in fade-in duration-500" role="alert" aria-live="assertive">
               <div className="bg-aura-success/10 text-aura-success p-2 rounded-full mb-4">
-                <Ticket size={32} />
+                <Ticket size={32} aria-hidden="true" />
               </div>
               <h3 className="text-gray-900 font-bold text-lg mb-1">Exclusive Perk Unlocked</h3>
               <p className="text-gray-500 text-xs text-center mb-6">Scan this code at the East Concourse Bar</p>
@@ -235,25 +260,27 @@ function App() {
                 <QRCodeSVG value={rewardCode} size={180} />
               </div>
               
-              <p className="text-gray-400 text-[10px] uppercase tracking-widest mt-6 font-bold">{rewardCode}</p>
+              <p className="text-gray-400 text-[10px] uppercase tracking-widest mt-6 font-bold" aria-label={`Reward code is ${rewardCode}`}>{rewardCode}</p>
             </div>
           )}
 
           <div ref={chatEndRef} />
         </main>
 
-        <div className="absolute bottom-0 w-full bg-gradient-to-t from-aura-dark via-aura-dark to-transparent pt-12 flex flex-col items-center pointer-events-none z-20">
+        <nav className="absolute bottom-0 w-full bg-gradient-to-t from-aura-dark via-aura-dark to-transparent pt-12 flex flex-col items-center pointer-events-none z-20" aria-label="Quick Actions and Voice Input">
           
           {/* Quick Actions Scrollable Grid */}
-          <div className="flex overflow-x-auto hide-scrollbar space-x-2 px-6 mb-6 w-full pointer-events-auto">
+          <div className="flex overflow-x-auto hide-scrollbar space-x-2 px-6 mb-6 w-full pointer-events-auto" role="list">
             {quickActions.map(action => (
               <button 
                 key={action.label}
                 onClick={() => handleQuickAction(action.label)}
                 disabled={isAiThinking}
-                className="whitespace-nowrap flex items-center bg-gray-800/90 hover:bg-gray-700 border border-gray-700 rounded-full px-4 py-2 text-xs font-medium text-gray-200 transition-colors shadow-lg"
+                aria-label={`Ask Aura about ${action.label}`}
+                className="whitespace-nowrap flex items-center bg-gray-800/90 hover:bg-gray-700 border border-gray-700 rounded-full px-4 py-2 text-xs font-medium text-gray-200 transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-aura-primary focus:ring-offset-2 focus:ring-offset-gray-900"
+                role="listitem"
               >
-                <span className="mr-2 opacity-80">{action.icon}</span>
+                <span className="mr-2 opacity-80" aria-hidden="true">{action.icon}</span>
                 {action.label}
               </button>
             ))}
@@ -263,7 +290,9 @@ function App() {
             <button 
               onClick={toggleRecording}
               disabled={isAiThinking}
-              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl ${
+              aria-label={isRecording ? "Stop recording voice message" : "Start recording voice message"}
+              aria-pressed={isRecording}
+              className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300 shadow-xl focus:outline-none focus:ring-4 focus:ring-aura-primary focus:ring-offset-4 focus:ring-offset-aura-dark ${
                 isRecording 
                   ? 'bg-aura-danger shadow-aura-danger/40 scale-110' 
                   : isAiThinking
@@ -271,13 +300,13 @@ function App() {
                   : 'bg-aura-primary shadow-aura-primary/40 hover:scale-105'
               }`}
             >
-              <Mic size={32} className={`text-white ${isRecording ? 'animate-pulse' : ''}`} />
+              <Mic size={32} className={`text-white ${isRecording ? 'animate-pulse' : ''}`} aria-hidden="true" />
             </button>
-            <p className="text-[10px] text-gray-400 mt-4 font-bold tracking-widest uppercase">
+            <p className="text-[10px] text-gray-400 mt-4 font-bold tracking-widest uppercase" aria-live="polite">
               {isRecording ? 'Tap to Send' : isAiThinking ? 'Analyzing' : 'Tap to Speak'}
             </p>
           </div>
-        </div>
+        </nav>
         
       </div>
     </div>

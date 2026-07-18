@@ -7,13 +7,13 @@ import { db } from '../config/firebase';
  */
 export const FirebaseService = {
   // Update a specific zone's data
-  updateZone: async (zoneId: string, data: any) => {
+  updateZone: async (zoneId: string, data: Partial<Zone>) => {
     const ref = doc(db, 'zones', zoneId);
-    return updateDoc(ref, data);
+    await updateDoc(ref, data);
   },
 
-  // Deploy a new AI negotiation campaign
-  deployCampaign: async (campaignId: string, data: any) => {
+  // Deploy an Aura Campaign
+  deployCampaign: async (campaignId: string, data: Campaign) => {
     const ref = doc(db, 'campaigns', campaignId);
     return setDoc(ref, data);
   },

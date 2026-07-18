@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardPage } from './features/dashboard/DashboardPage';
+import { NotFound } from './features/NotFound';
 
 function App() {
   return (
@@ -12,6 +13,7 @@ function App() {
         
         {/* Future routes will go here (e.g. /heatmap, /settings) */}
       </Route>
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

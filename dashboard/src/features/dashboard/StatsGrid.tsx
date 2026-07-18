@@ -8,63 +8,63 @@ interface StatsGridProps {
   campaigns: Campaign[];
 }
 
-export const StatsGrid: React.FC<StatsGridProps> = ({ zones, users, campaigns }) => {
-  const criticalZones = zones.filter(z => z.status === 'critical' || z.density > 85).length;
+export const StatsGrid: React.FC<StatsGridProps> = React.memo(({ zones, users, campaigns }) => {
+  const criticalZones = React.useMemo(() => zones.filter(z => z.status === 'critical' || z.density > 85).length, [zones]);
   
-  const avgDensity = zones.length > 0 
+  const avgDensity = React.useMemo(() => zones.length > 0 
     ? Math.round(zones.reduce((acc, z) => acc + z.density, 0) / zones.length) 
-    : 0;
+    : 0, [zones]);
 
   // New KPIs expanded as per user requirements
-  const stats = [
+  const stats = React.useMemo(() => [
     {
       title: 'Attendance',
       value: '78,402',
       subtitle: '98% Capacity',
-      icon: <Users size={20} className="text-aura-primary" />,
+      icon: <Users size={20} className="text-aura-primary" aria-hidden="true" />,
       color: 'bg-aura-primary/10 border-aura-primary/20'
     },
     {
       title: 'Current Density',
       value: `${avgDensity}%`,
       subtitle: 'Across all zones',
-      icon: <Activity size={20} className="text-aura-primary" />,
+      icon: <Activity size={20} className="text-aura-primary" aria-hidden="true" />,
       color: 'bg-aura-primary/10 border-aura-primary/20'
     },
     {
       title: 'Critical Alerts',
       value: criticalZones.toString(),
       subtitle: criticalZones > 0 ? 'Requires immediate action' : 'All clear',
-      icon: <AlertTriangle size={20} className={criticalZones > 0 ? "text-aura-danger" : "text-gray-400"} />,
+      icon: <AlertTriangle size={20} className={criticalZones > 0 ? "text-aura-danger" : "text-gray-400"} aria-hidden="true" />,
       color: criticalZones > 0 ? 'bg-aura-danger/10 border-aura-danger/20' : 'bg-gray-800/50 border-gray-700'
     },
     {
       title: 'Emergency Status',
       value: 'Nominal',
       subtitle: 'No active threats',
-      icon: <Zap size={20} className="text-aura-success" />,
+      icon: <Zap size={20} className="text-aura-success" aria-hidden="true" />,
       color: 'bg-aura-success/10 border-aura-success/20'
     },
     {
       title: 'Avg Wait Time',
       value: '14 min',
       subtitle: 'Gate egress',
-      icon: <Clock size={20} className="text-aura-warning" />,
+      icon: <Clock size={20} className="text-aura-warning" aria-hidden="true" />,
       color: 'bg-aura-warning/10 border-aura-warning/20'
     },
     {
       title: 'Parking Available',
       value: '12%',
       subtitle: 'Lots A, B, C',
-      icon: <Car size={20} className="text-aura-primary" />,
+      icon: <Car size={20} className="text-aura-primary" aria-hidden="true" />,
       color: 'bg-aura-primary/10 border-aura-primary/20'
     }
-  ];
+  ], [avgDensity, criticalZones]);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4" role="region" aria-label="Stadium Statistics">
       {stats.map((stat, idx) => (
-        <div key={idx} className={`p-4 rounded-xl border ${stat.color} flex flex-col justify-between transition-all hover:bg-opacity-80`}>
+        <div key={idx} className={`p-4 rounded-xl border ${stat.color} flex flex-col justify-between transition-all hover:bg-opacity-80`} role="article" aria-label={`${stat.title}: ${stat.value}`}>
           <div className="flex justify-between items-start mb-2">
             <div className="p-2 bg-gray-900/50 rounded-lg backdrop-blur-sm">
               {stat.icon}
@@ -79,4 +79,4 @@ export const StatsGrid: React.FC<StatsGridProps> = ({ zones, users, campaigns })
       ))}
     </div>
   );
-};
+});
