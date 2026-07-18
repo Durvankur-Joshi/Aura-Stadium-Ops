@@ -1,5 +1,6 @@
 import { doc, updateDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { Zone, Campaign } from '../types';
 
 /**
  * Service layer to handle all direct write mutations to Firestore.
