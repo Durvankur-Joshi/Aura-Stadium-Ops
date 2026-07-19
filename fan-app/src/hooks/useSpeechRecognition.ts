@@ -1,6 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { SpeechEvent } from '../types';
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 interface UseSpeechRecognitionProps {
   language: string;
   onTranscriptComplete: (transcript: string) => void;
