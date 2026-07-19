@@ -21,3 +21,37 @@ export interface Campaign {
   available_perks: string[];
   active: boolean;
 }
+
+/**
+ * Indicates the sender of a chat message.
+ */
+export enum MessageSender {
+  USER = 'user',
+  AI = 'ai'
+}
+
+/**
+ * A discrete message object used in the Fan App chat interface.
+ */
+export interface Message {
+  id: string;
+  text: string;
+  sender: MessageSender;
+  timestamp: string;
+}
+
+/**
+ * Standardized response object from the Express backend API.
+ */
+export interface BackendResponse {
+  speech: string;
+  reward_code?: string;
+  status: string;
+}
+
+/**
+ * Web Speech API standard event type.
+ */
+export interface SpeechEvent extends Event {
+  results: { [index: number]: { [index: number]: { transcript: string } } };
+}

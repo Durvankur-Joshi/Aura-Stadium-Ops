@@ -1,7 +1,7 @@
 import React from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
-export const AIInsights: React.FC = () => {
+export const AIInsights: React.FC = React.memo(() => {
   return (
     <div className="bg-gradient-to-br from-aura-card to-gray-900 p-6 rounded-xl border border-aura-primary/30 shadow-lg shadow-aura-primary/10 relative overflow-hidden">
       {/* Decorative background glow */}
@@ -41,4 +41,6 @@ export const AIInsights: React.FC = () => {
       </div>
     </div>
   );
-};
+});
+
+AIInsights.displayName = 'AIInsights';

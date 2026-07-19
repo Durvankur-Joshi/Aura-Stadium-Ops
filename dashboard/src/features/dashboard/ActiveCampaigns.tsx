@@ -7,9 +7,9 @@ interface ActiveCampaignsProps {
   campaigns: Campaign[];
 }
 
-export const ActiveCampaigns: React.FC<ActiveCampaignsProps> = ({ campaigns }) => {
+export const ActiveCampaigns: React.FC<ActiveCampaignsProps> = React.memo(({ campaigns }) => {
   // Trigger the Express Backend API to deploy the campaign securely
-  const handleDeployAura = async () => {
+  const handleDeployAura = React.useCallback(async () => {
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://aura-stadium-ops.onrender.com';
       await fetch(`${backendUrl}/api/deployCampaign`, {
@@ -26,7 +26,7 @@ export const ActiveCampaigns: React.FC<ActiveCampaignsProps> = ({ campaigns }) =
     } catch (error) {
       console.error("Failed to deploy campaign:", error);
     }
-  };
+  }, []);
 
   return (
     <div className="bg-aura-card p-6 rounded-xl border border-gray-800 h-full flex flex-col">
@@ -83,4 +83,6 @@ export const ActiveCampaigns: React.FC<ActiveCampaignsProps> = ({ campaigns }) =
       </div>
     </div>
   );
-};
+});
+
+ActiveCampaigns.displayName = 'ActiveCampaigns';
